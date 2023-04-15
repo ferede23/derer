@@ -1,0 +1,19 @@
+# Install Windows RDP
+Add-WindowsFeature RDS-RD-Server
+
+# Set up RDP licensing
+$obj = gwmi -namespace "Root/CIMV2/TerminalServices" Win32_TerminalServiceSetting
+$obj.SetSpecifiedLicenseServerList("YourLicenseServerName")
+$obj = gwmi -namespace "Root/CIMV2/TerminalServices" Win32_TerminalServiceLicenseServer
+$obj.SetLicenseServerMode(2)
+
+# Enable RDP access for specific users
+$AllowedUsers = "DOMAIN\User1", "DOMAIN\User2"
+New-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server" -Name "fDenyTSConnections" -Value 0 -PropertyType dword -Force | Out-Null
+foreach ($user in $AllowedUsers) {
+    $obj = "WinNT://$user"
+    $obj = [ADSI]$obj
+    $obj.psbase.Invoke("SetPassword", "P@ssw0rd!")
+    $obj.psbase.Invoke("Put", "userFlags", 0x10000)
+    $obj.CommitChanges()
+}
